@@ -1,48 +1,34 @@
-import { Fragment, useContext, useEffect, useState } from "react";
+import { Fragment, useContext, useEffect } from "react";
 import { Outlet, Link } from "react-router-dom";
 import { UserContext } from "../../contexts/users.context";
+import { signOutUser, retrieveProfileImage } from "../../utils/firebase/firebase.utils";
 
 import './navigation.styles.css';
 
-import { signOutUser, retrieveProfileImage } from "../../utils/firebase/firebase.utils";
-
-
-const Navigation = () =>{
-  const { currentUser, setCurrentUser } = useContext(UserContext);
-  const userName = currentUser ? currentUser.displayName : null;
-  const [profileImageUrl, setProfileImageUrl] = useState('');
-
+const Navigation = () => {
+  const { currentUser, setCurrentUser, profileImageUrl, setProfileImageUrl } = useContext(UserContext);
 
   useEffect(() => {
     const fetchProfileImage = async () => {
-        if (currentUser) {
-            try {
-                const imageUrl = await retrieveProfileImage(currentUser);
-                setProfileImageUrl(imageUrl);
-                console.log("Image URL: " + imageUrl);
-            } catch (error) {
-                console.error('Failed to retrieve profile image:', error);
-            }
+      if (currentUser) {
+        try {
+          const imageUrl = await retrieveProfileImage(currentUser);
+          setProfileImageUrl(imageUrl);
+          console.log("Image URL: " + imageUrl);
+        } catch (error) {
+          console.error('Failed to retrieve profile image:', error);
         }
+      }
     };
 
     fetchProfileImage();
-}, [currentUser]);
-  
-
-
-
-  useEffect(() => {
-    if(currentUser)
-    {
-      setCurrentUser(currentUser);
-    }
-  }, [currentUser, setCurrentUser]);
+  }, [currentUser, setProfileImageUrl]);
 
   const signOutHandler = async () => {
     await signOutUser();
     setCurrentUser(null);
-  }
+    setProfileImageUrl(''); // Reset profile image on sign out
+  };
 
   return (
     <Fragment>
@@ -54,7 +40,7 @@ const Navigation = () =>{
           <Link className='nav-link' to="/make">Make</Link>
           {currentUser ? (
             <>
-              <Link className='nav-link' to={`/user/${userName}`}>Hi {userName}</Link>
+              <Link className='nav-link' to={`/user/${currentUser.displayName}`}>Hi {currentUser.displayName}</Link>
               {profileImageUrl && <img src={profileImageUrl} className="pfp-mini" alt="Profile" />}
             </>
           ) : (

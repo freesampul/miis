@@ -14,7 +14,7 @@ function App() {
         <Route path='/' element={<Navigation />}>
         <Route path="auth" element={<Authentication />} />
         <Route path="make" element={<CustomizeScreen />} />
-        <Route path="user/*" element={<UserPage />} />
+        <Route path="user/:username" element={<UserPage />} />
         </Route>
       </Routes>
     </Router>

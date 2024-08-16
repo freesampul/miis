@@ -1,12 +1,10 @@
 import { useState } from "react";
-
 import FormInput from "../form-input/form-input.component";
-
 import {
   createAuthUserWithEmailAndPassword,
   createUserDocumentFromAuth,
+  doesUserExist,
 } from "../../utils/firebase/firebase.utils";
-
 import "./sign-up-form.styles.css";
 
 const defaultFormFields = {
@@ -20,7 +18,6 @@ const SignUpForm = () => {
   const [formFields, setFormFields] = useState(defaultFormFields);
   const { displayName, email, password, confirmPassword } = formFields;
 
-
   const resetFormFields = () => {
     setFormFields(defaultFormFields);
   };
@@ -29,7 +26,7 @@ const SignUpForm = () => {
     event.preventDefault();
 
     if (password !== confirmPassword) {
-      alert("passwords do not match");
+      alert("Passwords do not match");
       return;
     }
 
@@ -40,7 +37,12 @@ const SignUpForm = () => {
       return;
     }
 
-
+    // Check if the username (displayName) is unique
+    const isUserExist = await doesUserExist(displayName);
+    if (isUserExist) {
+      alert("Username is already taken, please choose another one");
+      return;
+    }
 
     try {
       const { user } = await createAuthUserWithEmailAndPassword(
@@ -55,14 +57,13 @@ const SignUpForm = () => {
       if (error.code === "auth/email-already-in-use") {
         alert("Cannot create user, email already in use");
       } else {
-        console.log("user creation encountered an error", error);
+        console.log("User creation encountered an error", error);
       }
     }
   };
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-
     setFormFields({ ...formFields, [name]: value });
   };
 
@@ -109,7 +110,7 @@ const SignUpForm = () => {
           value={confirmPassword}
         />
         <div className="sign-up-button-container">
-        <button type="submit">Sign Up</button>
+          <button type="submit">Sign Up</button>
         </div>
       </form>
     </div>
