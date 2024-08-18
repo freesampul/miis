@@ -8,74 +8,74 @@ const UserProfile = () => {
     const { username } = useParams();
     const [userObject, setUserObject] = useState(null);
     const [profileImageUrl, setProfileImageUrl] = useState('');
-    const [loadingImage, setLoadingImage] = useState(true);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        const fetchUserObject = async () => {
-            if (username) {
-                try {
-                    console.log(`Fetching user object for username: ${username}`);
-                    const user = await getUserByUsername(username);
-                    if (user) {
-                        console.log('User object retrieved:', user);
-                        setUserObject(user);
+        const fetchUserProfile = async () => {
+            setLoading(true);
+            setError(null);
+
+            try {
+                const user = await getUserByUsername(username);
+                console.log("User Object Retrieved: ", user);
+                
+                if (user) {
+                    setUserObject(user);
+
+                    // Check if userObject is properly set before fetching the image
+                    if (user.uid) {
+                        const imageUrl = await retrieveProfileImage(user);
+                        setProfileImageUrl(imageUrl || '');
                     } else {
-                        console.error('User not found');
+                        console.error("User UID is undefined.");
+                        setProfileImageUrl(''); // Optional: Set a default image URL here
                     }
-                } catch (error) {
-                    console.error('Failed to retrieve user:', error);
+                } else {
+                    setError('User not found');
                 }
-            } else {
-                console.error('Username is undefined');
+            } catch (err) {
+                setError('Failed to fetch user data');
+            } finally {
+                setLoading(false);
             }
         };
 
-        fetchUserObject();
+        if (username) {
+            fetchUserProfile();
+        }
     }, [username]);
-
-    useEffect(() => {
-        const fetchProfileImage = async () => {
-            if (username && username.uid) {
-                try {
-                    console.log(`Retrieving profile image for user UID: ${userObject.uid}`);
-                    const imageUrl = await retrieveProfileImage(userObject);
-                    if (imageUrl) {
-                        console.log('Profile image URL retrieved:', imageUrl);
-                        setProfileImageUrl(imageUrl);
-                    } else {
-                        console.error('No profile image found');
-                    }
-                } catch (error) {
-                    console.error('Failed to retrieve profile image:', error);
-                } finally {
-                    setLoadingImage(false);
-                }
-            } else {
-                setLoadingImage(false);
-                console.error('User object is null or missing UID');
-            }
-        };
-
-        fetchProfileImage();
-    }, [userObject]);
 
     const signOutHandler = async () => {
         await signOutUser();
-        setCurrentUser(null);
-        setProfileImageUrl(''); // Reset profile image on sign out
+        setCurrentUser(null); // Clear current user context
     };
 
     return (
         <div className="profile-page container">
-            {loadingImage ? (
-                <p>Loading profile image...</p>
-            ) : profileImageUrl ? (
-                <img src={profileImageUrl} alt="Profile" />
+            {loading ? (
+                <p>Loading...</p>
+            ) : error ? (
+                <p>{error}</p>
             ) : (
-                <p>No profile image available</p>
+                <>
+                    {profileImageUrl ? (
+                        <img src={profileImageUrl} alt={`${username}'s Profile`} />
+                    ) : (
+                        <p>No profile image available</p>
+                    )}
+                    <h1>Welcome, {userObject?.displayName || username}!</h1>
+
+                    {currentUser?.username === username ? (
+                        <div>
+                            <button onClick={signOutHandler}>Sign Out</button>
+                            <button>Edit Profile</button>
+                        </div>
+                    ) : (
+                        <p>You are viewing {username}'s profile.</p>
+                    )}
+                </>
             )}
-            <h1>Welcome, {userObject?.displayName || 'User'}!</h1>
-            {currentUser && <button onClick={signOutHandler}>Sign Out</button>}
         </div>
     );
 };

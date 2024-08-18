@@ -184,7 +184,7 @@ export const uploadProfileImage = async (user, imageData) => {
 
 
 export const retrieveProfileImage = async (user) => {
-  if (!user || !user.uid) {
+  if (!user) {
     console.error('Invalid user.');
     return null;
   }
