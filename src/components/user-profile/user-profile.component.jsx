@@ -1,54 +1,70 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { UserContext } from '../../contexts/users.context';
-import { signOutUser, getUserByUsername, retrieveProfileImage } from '../../utils/firebase/firebase.utils';
+import { signOutUser, retrieveProfileImage, getUserByUsername } from '../../utils/firebase/firebase.utils';
 
 const UserProfile = () => {
-    const { currentUser, setCurrentUser } = useContext(UserContext);
+    const { currentUser, setCurrentUser, profileImageUrl, setProfileImageUrl } = useContext(UserContext);
     const { username } = useParams();
-    const [userObject, setUserObject] = useState(null);
-    const [profileImageUrl, setProfileImageUrl] = useState('');
+    const [displayedProfileImage, setDisplayedProfileImage] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        const fetchUserProfile = async () => {
+        let isCancelled = false; // To prevent state updates if the component unmounts
+
+        const fetchUserProfileImage = async () => {
             setLoading(true);
             setError(null);
 
             try {
-                const user = await getUserByUsername(username);
-                console.log("User Object Retrieved: ", user);
-                
-                if (user) {
-                    setUserObject(user);
+                const trimmedUsername = username.trim();
+                console.log("Received and trimmed username from URL params:", `"${trimmedUsername}"`);
 
-                    // Check if userObject is properly set before fetching the image
-                    if (user.uid) {
+                if (trimmedUsername) {
+                    console.log(`Fetching user for trimmed username: "${trimmedUsername}"`);
+                    const user = await getUserByUsername(trimmedUsername);
+
+                    if (user && user.uid) {
+                        console.log("Resolved user with UID:", user.uid);
+
                         const imageUrl = await retrieveProfileImage(user);
-                        setProfileImageUrl(imageUrl || '');
+                        if (imageUrl) {
+                            console.log("Fetched profile image URL:", imageUrl);
+                            if (!isCancelled) setDisplayedProfileImage(imageUrl);
+                        } else {
+                            console.error("No profile image found.");
+                            if (!isCancelled) setError('No profile image found.');
+                        }
                     } else {
-                        console.error("User UID is undefined.");
-                        setProfileImageUrl(''); // Optional: Set a default image URL here
+                        console.error(`Failed to resolve user UID for username: "${trimmedUsername}"`);
+                        if (!isCancelled) setError('User not found.');
                     }
+                } else if (currentUser) {
+                    console.log("Using current user's profile image:", profileImageUrl);
+                    if (!isCancelled) setDisplayedProfileImage(profileImageUrl);
                 } else {
-                    setError('User not found');
+                    if (!isCancelled) setError('No user information available.');
                 }
             } catch (err) {
-                setError('Failed to fetch user data');
+                console.error('Failed to fetch profile image:', err);
+                if (!isCancelled) setError('Failed to fetch profile image.');
             } finally {
-                setLoading(false);
+                if (!isCancelled) setLoading(false);
             }
         };
 
-        if (username) {
-            fetchUserProfile();
-        }
-    }, [username]);
+        fetchUserProfileImage();
+
+        return () => {
+            isCancelled = true; // Cleanup function to prevent setting state after unmount
+        };
+    }, [username, currentUser, profileImageUrl]);
 
     const signOutHandler = async () => {
         await signOutUser();
-        setCurrentUser(null); // Clear current user context
+        setCurrentUser(null);
+        setProfileImageUrl('');
     };
 
     return (
@@ -59,20 +75,20 @@ const UserProfile = () => {
                 <p>{error}</p>
             ) : (
                 <>
-                    {profileImageUrl ? (
-                        <img src={profileImageUrl} alt={`${username}'s Profile`} />
+                    {displayedProfileImage ? (
+                        <img src={displayedProfileImage} alt={`${username || currentUser?.displayName}'s Profile`} />
                     ) : (
                         <p>No profile image available</p>
                     )}
-                    <h1>Welcome, {userObject?.displayName || username}!</h1>
+                    <h1>Welcome, {username?.trim() || currentUser?.displayName}!</h1>
 
-                    {currentUser?.username === username ? (
+                    {currentUser && (username?.trim() === currentUser?.displayName) ? (
                         <div>
                             <button onClick={signOutHandler}>Sign Out</button>
                             <button>Edit Profile</button>
                         </div>
                     ) : (
-                        <p>You are viewing {username}'s profile.</p>
+                        <p>You are viewing {username?.trim() || currentUser?.displayName}'s profile.</p>
                     )}
                 </>
             )}

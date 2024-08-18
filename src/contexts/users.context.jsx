@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect } from 'react';
-import { createUserDocumentFromAuth, onAuthStateChangedListener } from '../utils/firebase/firebase.utils';
+import { createUserDocumentFromAuth, onAuthStateChangedListener, retrieveProfileImage } from '../utils/firebase/firebase.utils';
 
 export const UserContext = createContext({
   currentUser: null,
@@ -15,11 +15,15 @@ export const UserProvider = ({ children }) => {
   const value = { currentUser, setCurrentUser, profileImageUrl, setProfileImageUrl };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChangedListener((user) => {
+    const unsubscribe = onAuthStateChangedListener(async (user) => {
       if (user) {
-        createUserDocumentFromAuth(user).catch(error => {
-          console.error("Error creating user document:", error);
-        });
+        try {
+          await createUserDocumentFromAuth(user);
+          const imageUrl = await retrieveProfileImage(user);
+          setProfileImageUrl(imageUrl || '');
+        } catch (error) {
+          console.error("Error handling user state change:", error);
+        }
       }
       setCurrentUser(user);
     });

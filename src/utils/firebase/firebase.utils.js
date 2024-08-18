@@ -143,24 +143,31 @@ export const getUserByUID = async (uid) => {
   }
 };
 
+
 export const getUserByUsername = async (username) => {
   try {
+    console.log(`Fetching user by username: "${username}"`);
+    
     const usernameDocRef = doc(db, 'usernames', username);
     const usernameSnapshot = await getDoc(usernameDocRef);
 
     if (usernameSnapshot.exists()) {
       const uid = usernameSnapshot.data().uid;
+      console.log(`Found UID for username "${username}": ${uid}`);
       return await getUserByUID(uid);
     } else {
-      console.error('Username not found');
+      console.error(`Username "${username}" not found in the usernames collection`);
       return null;
     }
   } catch (error) {
-    console.error('Error retrieving user by username', error);
+    console.error('Error retrieving user by username:', error);
     return null;
   }
 };
 
+
+
+// Upload Profile Image
 export const uploadProfileImage = async (user, imageData) => {
   if (!user || !imageData) {
     console.error('Invalid user or image data.');
@@ -176,21 +183,36 @@ export const uploadProfileImage = async (user, imageData) => {
 
     await updateProfile(user, { photoURL: downloadURL });
     console.log(`Profile image updated to: ${downloadURL}`);
+    return downloadURL;  // Return the download URL for convenience
   } catch (error) {
     console.error('Error updating profile image:', error.message);
     throw new Error('Failed to update profile image.');
   }
 };
 
-
-export const retrieveProfileImage = async (user) => {
-  if (!user) {
-    console.error('Invalid user.');
+// Retrieve Profile Image by User or Username
+export const retrieveProfileImage = async (userOrUsername) => {
+  if (!userOrUsername) {
+    console.error('Invalid user or username.');
     return null;
   }
 
+  let uid;
+
+  if (typeof userOrUsername === 'string') {
+    const user = await getUserByUsername(userOrUsername);
+    if (!user) {
+      console.error('User not found.');
+      return null;
+    }
+    uid = user.uid;
+  } else {
+    // Assume it's a user object
+    uid = userOrUsername.uid;
+  }
+
   const storage = getStorage();
-  const storageRef = ref(storage, `profileImages/${user.uid}/profilePicture.png`);
+  const storageRef = ref(storage, `profileImages/${uid}/profilePicture.png`);
 
   try {
     const downloadURL = await getDownloadURL(storageRef);
