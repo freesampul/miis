@@ -66,6 +66,7 @@ const UserProfile = () => {
         setCurrentUser(null);
         setProfileImageUrl('');
     };
+    
 
     return (
         <div className="profile-page container">
