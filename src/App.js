@@ -5,6 +5,9 @@ import CustomizeScreen from './routes/customizeScreen/customizeScreen.component'
 import Authentication from './routes/auth/authentication.component';
 import Navigation from './routes/navigation/navigation.component';
 import UserPage from './routes/users/users.component';
+import Feed from './components/feed/feed.component'
+
+
 
 function App() {
   return (
@@ -14,6 +17,7 @@ function App() {
         <Route path='/' element={<Navigation />}>
         <Route path="auth" element={<Authentication />} />
         <Route path="make" element={<CustomizeScreen />} />
+        <Route path="feed" element={<Feed />} />
         <Route path="user/:username" element={<UserPage />} />
         </Route>
       </Routes>

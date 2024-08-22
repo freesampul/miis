@@ -18,7 +18,7 @@ const UserProfile = () => {
             setError(null);
 
             try {
-                const trimmedUsername = username.trim();
+                const trimmedUsername = username?.trim();
                 console.log("Received and trimmed username from URL params:", `"${trimmedUsername}"`);
 
                 if (trimmedUsername) {
@@ -28,23 +28,23 @@ const UserProfile = () => {
                     if (user && user.uid) {
                         console.log("Resolved user with UID:", user.uid);
 
-                        const imageUrl = await retrieveProfileImage(user);
-                        if (imageUrl) {
+                        const imageUrl = await retrieveProfileImage(user.uid);
+                        if (imageUrl && !isCancelled) {
                             console.log("Fetched profile image URL:", imageUrl);
-                            if (!isCancelled) setDisplayedProfileImage(imageUrl);
-                        } else {
+                            setDisplayedProfileImage(imageUrl);
+                        } else if (!isCancelled) {
                             console.error("No profile image found.");
-                            if (!isCancelled) setError('No profile image found.');
+                            setError('No profile image found.');
                         }
-                    } else {
+                    } else if (!isCancelled) {
                         console.error(`Failed to resolve user UID for username: "${trimmedUsername}"`);
-                        if (!isCancelled) setError('User not found.');
+                        setError('User not found.');
                     }
                 } else if (currentUser) {
                     console.log("Using current user's profile image:", profileImageUrl);
                     if (!isCancelled) setDisplayedProfileImage(profileImageUrl);
-                } else {
-                    if (!isCancelled) setError('No user information available.');
+                } else if (!isCancelled) {
+                    setError('No user information available.');
                 }
             } catch (err) {
                 console.error('Failed to fetch profile image:', err);
@@ -66,7 +66,6 @@ const UserProfile = () => {
         setCurrentUser(null);
         setProfileImageUrl('');
     };
-    
 
     return (
         <div className="profile-page container">
@@ -77,13 +76,13 @@ const UserProfile = () => {
             ) : (
                 <>
                     {displayedProfileImage ? (
-                        <img src={displayedProfileImage} alt={`${username || currentUser?.displayName}'s Profile`} />
+                        <img src={displayedProfileImage} alt={`${username?.trim() || currentUser?.displayName}'s Profile`} />
                     ) : (
                         <p>No profile image available</p>
                     )}
                     <h1>Welcome, {username?.trim() || currentUser?.displayName}!</h1>
 
-                    {currentUser && (username?.trim() === currentUser?.displayName) ? (
+                    {currentUser && username?.trim() === currentUser?.displayName ? (
                         <div>
                             <button onClick={signOutHandler}>Sign Out</button>
                             <button>Edit Profile</button>

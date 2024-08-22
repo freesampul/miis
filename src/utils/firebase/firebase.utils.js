@@ -10,7 +10,7 @@ import {
   onAuthStateChanged,
   updateProfile
 } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -42,23 +42,23 @@ export const createUserDocumentFromAuth = async (userAuth, additionalInformation
     return;
   }
 
-  // Check if the username (displayName) is already taken
-  const usernameDocRef = doc(db, 'usernames', displayName);
-  const usernameSnapshot = await getDoc(usernameDocRef);
-
-  if (usernameSnapshot.exists()) {
-    throw new Error('Username is already taken');
-  }
-
-  // If the username is unique, proceed to create the user document
   const userDocRef = doc(db, 'users', uid);
   const userSnapshot = await getDoc(userDocRef);
 
+  // Only create the user document if it doesn't already exist
   if (!userSnapshot.exists()) {
     const createdAt = new Date();
 
     try {
-      // Set the document in the 'users' collection
+      // Check if the username (displayName) is already taken
+      const usernameDocRef = doc(db, 'usernames', displayName);
+      const usernameSnapshot = await getDoc(usernameDocRef);
+
+      if (usernameSnapshot.exists()) {
+        throw new Error('Username is already taken');
+      }
+
+      // Create the user document in 'users' collection
       await setDoc(userDocRef, {
         displayName,
         email,
@@ -66,7 +66,7 @@ export const createUserDocumentFromAuth = async (userAuth, additionalInformation
         ...additionalInformation
       });
 
-      // Set the document in the 'usernames' collection for uniqueness check
+      // Create the username document in 'usernames' collection
       await setDoc(usernameDocRef, { uid });
 
       console.log("User created:", displayName);
@@ -143,7 +143,6 @@ export const getUserByUID = async (uid) => {
   }
 };
 
-
 export const getUserByUsername = async (username) => {
   try {
     console.log(`Fetching user by username: "${username}"`);
@@ -164,8 +163,6 @@ export const getUserByUsername = async (username) => {
     return null;
   }
 };
-
-
 
 // Upload Profile Image
 export const uploadProfileImage = async (user, imageData) => {
